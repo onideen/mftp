@@ -18,6 +18,7 @@ void printVersion() {
 int main(int argc, char **argv)
 {
 	int opt = 0;
+	int longIndex = 0;
 	
 	/* Initialize gArgs before with default values */
 	gArgs.downloadFile = NULL;
