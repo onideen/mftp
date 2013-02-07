@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 'p':
-				gArgs.port = (int)optarg;
+				gArgs.port = optarg;
 				break;
 
 			case 'n':
