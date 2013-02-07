@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	gArgs.logfile = NULL;
 	
 
-	opt = getopt( argc, argv, optString);
+	opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 
 	while( opt != -1 ) {
 		switch( opt ){
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 'p':
-				gArgs.port = optarg;
+				gArgs.port = (int)optarg;
 				break;
 
 			case 'n':
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 
 		}
 		
-		opt = getopt( argc, argv, optString);
+		opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 
 
 		
