@@ -1,19 +1,4 @@
-#include <stdio.h>     /* for printf */
-#include <stdlib.h>    /* for exit */
-#include <getopt.h>
-
-void printGlobalArgs();
-
-struct globalArgs_t {
-	char *downloadFile;	/* -f option */
-	char *hostname;		/* -s option */
-	int port;		/* -p option */
-	char *username;		/* -n option */	
-	char *password;		/* -P option */
-	int active;		/* -a option */
-	char *mode;		/* -m option */
-	char *logfile;		/* -l option */
-} gArgs;
+#include <mftp.h> 
 
 static const char *optString = "hvaf:s:p:n:P:m:l";
 
