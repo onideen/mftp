@@ -2,6 +2,18 @@
 
 static const char *optString = "hvaf:s:p:n:P:m:l";
 
+void printUsage();
+void printVersion();
+
+/* NOT DONE */
+void printUsage() {
+	printf("This is the help file\n");
+}
+
+/* NOT DONE */
+void printVersion() {
+	printf("This is version 0.01\n");
+}
 
 int main(int argc, char **argv)
 {
@@ -84,3 +96,4 @@ void printGlobalArgs() {
 	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.downloadFile, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
 
 }
+
