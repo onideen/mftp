@@ -1,17 +1,24 @@
 #include <stdio.h>     /* for printf */
 #include <stdlib.h>    /* for exit */
 #include <getopt.h>
+#include <string.h> /* memset */
+#include <unistd.h> /* close */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+
 
 void printGlobalArgs();
+void ftpClient();
 
 struct globalArgs_t {
 	char *downloadFile;	/* -f option */
 	char *hostname;		/* -s option */
-	int port;		/* -p option */
+	int port;			/* -p option */
 	char *username;		/* -n option */	
 	char *password;		/* -P option */
-	int active;		/* -a option */
-	char *mode;		/* -m option */
+	int active;			/* -a option */
+	char *mode;			/* -m option */
 	char *logfile;		/* -l option */
 } gArgs;
 

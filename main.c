@@ -15,8 +15,7 @@ void printVersion() {
 	printf("This is version 0.01\n");
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	int opt = 0;
 	int longIndex = 0;
 	
@@ -44,7 +43,7 @@ int main(int argc, char **argv)
 				break;
 
 			case 'p':
-				gArgs.port = optarg;
+				gArgs.port = atoi(optarg);
 				break;
 
 			case 'n':
@@ -86,10 +85,11 @@ int main(int argc, char **argv)
 
 	}
 
-
-
 	printGlobalArgs();
 	
+	
+	ftpClient();
+
 }
 
 
