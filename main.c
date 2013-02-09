@@ -1,7 +1,5 @@
 #include "mftp.h" 
 
-static const char *optString = "hvaf:s:p:n:P:m:l";
-
 void printUsage();
 void printVersion();
 
@@ -14,6 +12,13 @@ void printUsage() {
 void printVersion() {
 	printf("This is version 0.01\n");
 }
+ 
+/* NOT DONE - print right errormessage */
+void pdie(int errorCode){
+	printf("Error %d\n", errorCode);
+	exit(errorCode);
+}
+
 
 int main(int argc, char **argv) {
 	int opt = 0;
@@ -79,14 +84,10 @@ int main(int argc, char **argv) {
 		}
 		
 		opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
-
-
 		
-
 	}
 
 	printGlobalArgs();
-	
 	
 	ftpClient();
 
@@ -97,4 +98,6 @@ void printGlobalArgs() {
 	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.downloadFile, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
 
 }
+
+
 

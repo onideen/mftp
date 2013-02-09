@@ -6,10 +6,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/types.h>
+#include <regex.h> 
 
-
+int connectSocket(int port);
+void pdie(int errorCode);
 void printGlobalArgs();
 void ftpClient();
+int authentificate(int socket, char recvBuff[], char sendBuff[]);
+void printread(int socket, char recvBuff[]);
+int findPasvPort(char searchString[]);
+void substrafter(char out[], char in[], char needle[], int nr);
+void retriveFile();
+
 
 struct globalArgs_t {
 	char *downloadFile;	/* -f option */
@@ -21,6 +29,8 @@ struct globalArgs_t {
 	char *mode;			/* -m option */
 	char *logfile;		/* -l option */
 } gArgs;
+
+static const char *optString = "hvaf:s:p:n:P:m:l";
 
 static const struct option longOpts[] = {
 	{ "version", no_argument, NULL, 'v' },
