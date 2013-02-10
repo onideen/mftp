@@ -1,16 +1,15 @@
 #include "mftp.h"
 
 static const BUFFER_SIZE = 1024;
-
-
-
+/**** !!!!!!!!!!!!!!!!!! KAN SPARE MANGE LINJER 
+***************** sprintf(str, "%d", aInt);
+**/
 void ftpClient() {
-    int control_socket = 0, filesocket = 0;
-    char recvBuff[BUFFER_SIZE], sendBuff[BUFFER_SIZE], fileRecv[BUFFER_SIZE];
-    FILE *p = NULL;
+    int control_socket = 0, i;
+    char recvBuff[BUFFER_SIZE], sendBuff[BUFFER_SIZE];
 
-    memset(recvBuff, '0',sizeof(recvBuff));
-    memset(sendBuff, '0',sizeof(sendBuff));
+    memset(recvBuff, '0', sizeof(recvBuff));
+    memset(sendBuff, '0', sizeof(sendBuff));
 
     control_socket = connectSocket(gArgs.port);
     
@@ -21,54 +20,15 @@ void ftpClient() {
 
     printread(control_socket, recvBuff);
 
-    // SET TYPE TO ASCII OR BINARY
-    if (strcmp(gArgs.mode, "binary") == 0 ) {
-        strcpy(sendBuff, "TYPE I\r\n");
-        write(control_socket, sendBuff, strlen(sendBuff));
-    } 
+    setType(control_socket, sendBuff);
 
     printread(control_socket, recvBuff);
 
-    if (strncmp(recvBuff, "200", 3) == 0) {
-    // Mode successfully set 
-    }
-
-
-
-    if (gArgs.active) {
-        //FIX ACTIVE MODE
-    } else {
-        /* PASV mode */
-        int port;
-        strcpy(sendBuff, "PASV\r\n");
-        write(control_socket, sendBuff, strlen(sendBuff));
-        printread(control_socket, recvBuff);
-        port = findPasvPort(recvBuff);
-        filesocket = connectSocket(port);
-
-    }
-
-
-
-    //etriveFile();
-    strcpy(sendBuff, "RETR ");
-    strcat(sendBuff, gArgs.downloadFile);
-    strcat(sendBuff, "\r\n");
-    write(control_socket, sendBuff, strlen(sendBuff));
+    retriveFile(sendBuff, recvBuff, control_socket);
+    
     printread(control_socket, recvBuff);
 
-    printread(filesocket, r);
-    printread(control_socket, recvBuff);
-
-    p = fopen(gArgs.downloadFile, "w");
-    if (p== NULL) {
-        printf("Error in opening a file..", gArgs.downloadFile);
-    }
-    fwrite(recvBuff, strlen(recvBuff), 1, p);
-    fclose(p);
-
-
-//    if (strncmp(recvBuff, "150  ", 3) == 0)
+//   if (strncmp(recvBuff, "150  ", 3) == 0)
 
     exit(0);
 
@@ -82,7 +42,7 @@ int findPasvPort(char searchString[]) {
     int secondlast, last, port;
 
     memset(b, '0',sizeof(b));
-    memset(e, '0',sizeof(b));
+    memset(e, '0',sizeof(e));
 
     substrafter(b, searchString, ",", 4);
     substrafter(e, searchString, ",", 5);
@@ -136,7 +96,7 @@ int authentificate(int socket, char recvBuff[], char sendBuff[]){
 void printread(int socket, char recvBuff[]){
     int n;
 
-    n = read(socket, recvBuff, BUFFER_SIZE-1); 
+    n = read(socket, recvBuff, BUFFER_SIZE-1);     
         
     if(n < 0) {
         printf("\n Read error \n");
@@ -152,23 +112,27 @@ void printread(int socket, char recvBuff[]){
 }
 
 int connectSocket(int port) {
+    struct hostent *he;
     int socket_fd = 0;
     struct sockaddr_in server_address; 
+
+    memset(&server_address, '0', sizeof(server_address)); 
 
     if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Error : Could not create socket \n");
         exit(0);
     } 
 
-    memset(&server_address, '0', sizeof(server_address)); 
+    if ((he = gethostbyname(gArgs.hostname)) == NULL) {
+        puts("error resolving hostname..");
+        exit(1);
+    }
+
+    memcpy(&server_address.sin_addr, he->h_addr_list[0], he->h_length);
 
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(port); 
 
-    if(inet_pton(AF_INET, gArgs.hostname, &server_address.sin_addr)<=0) {
-        printf("\n inet_pton error occured\n");
-        exit(0);
-    } 
     if( connect(socket_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
        pdie(1);
     }
@@ -187,5 +151,145 @@ void substrafter(char *out, char haystack[], char needle[], int nr) {
     strcpy(out, &tmp[1]);
 }
 
-void retriveFile(){
+int findBytes(char haystack[]) {
+    char b[50];
+    char e[50];
+
+    substrafter(b, haystack, "(", 1);
+    substrafter(e, b, " ", 1);
+
+    b[strlen(b)-strlen(e)-1] = 0;
+    return atoi(b);
+}
+
+void retriveFile(char sendBuff[], char recvBuff[], int control_socket){
+    int filesocket = 0, bytesToDownload = 0, received = 0, n;
+    unsigned char fileRecv[1024];
+    FILE *p = NULL;
+
+    memset(fileRecv, 0, sizeof(fileRecv));
+
+    if (strncmp(recvBuff, "200", 3) == 0) {
+    // Mode successfully set 
+    }
+
+    if (gArgs.active) {
+        //FIX ACTIVE MODE
+        //get ip
+        
+        filesocket = openServerSocket(control_socket, sendBuff);
+        // SendBuff will now contain "PORT ip1,ip2,ip3,ip4,port1,port2"
+        printf("%s", sendBuff);
+        
+
+        printread(control_socket, recvBuff);
+
+    } else {
+        /* PASV mode */
+        int port;
+        strcpy(sendBuff, "PASV\r\n");
+        write(control_socket, sendBuff, strlen(sendBuff));
+        printread(control_socket, recvBuff);
+        port = findPasvPort(recvBuff);
+        filesocket = connectSocket(port);
+    }
+
+    strcpy(sendBuff, "RETR ");
+    strcat(sendBuff, gArgs.downloadFile);
+    strcat(sendBuff, "\r\n");
+    write(control_socket, sendBuff, strlen(sendBuff));
+    printread(control_socket, recvBuff);
+
+    bytesToDownload = findBytes(recvBuff);
+
+    printf("%d\n", bytesToDownload);
+
+    p = fopen(gArgs.downloadFile, "w");
+    if (p== NULL) {
+        printf("Error in opening a file..", gArgs.downloadFile);
+    }
+
+    while (received < bytesToDownload) {
+        n = read(filesocket, fileRecv, BUFFER_SIZE-1);;
+        
+        fwrite(fileRecv, 1, n, p);
+
+        received += n;
+    }
+   
+    fclose(p); 
+}
+
+
+/* Sets ascii or binary mode */
+void setType(int control_socket, char sendBuff[]){
+
+    if (strcmp(gArgs.mode, "binary") == 0 ) {
+        strcpy(sendBuff, "TYPE I\r\n");
+        write(control_socket, sendBuff, strlen(sendBuff));
+    } else if (strcmp(gArgs.mode, "ASCII") == 0) {
+        strcpy(sendBuff, "TYPE A\r\n");
+    }
+}
+ 
+/* port string */
+void portString(char out[], int port) {
+    char hostn[400]; //placeholder for the hostname
+    char tmp[5];
+    struct hostent *hostIP; //placeholder for the IP address
+    int i;
+
+    if(gethostname(hostn, sizeof(hostn)) == 0) {
+        hostIP = gethostbyname(hostn); //the netdb.h function gethostbyname
+        sprintf(hostn, "%s", inet_ntoa(*(struct in_addr *)hostIP->h_addr));
+        
+        for (i = 0; i < strlen(hostn); i++) {
+            if (hostn[i] == '.')
+                hostn[i] = ',';
+        }
+        sprintf(out, "PORT %s,%d,%d\r\n", hostn, port/256, port%256);
+    }
+}
+
+
+int openServerSocket(int control_socket, char portStr[]) {
+    int socket_fd;
+    int message_socket;
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+    struct sockaddr_in tmp;
+    int tmpLen;
+    int clientLen;
+    int rval;
+    char buf[BUFFER_SIZE]; 
+
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    bzero ((char *) &server_address, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(0);
+
+    if (bind(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)))
+        pdie(1);
+
+    tmpLen = sizeof(tmp);
+    getsockname(socket_fd, (struct sockaddr *) &tmp, &tmpLen);
+
+    portString(portStr, ntohs(tmp.sin_port));
+
+    printf("%s\n", portStr);
+    write(control_socket, portStr, strlen(portStr));
+   
+    listen(socket_fd, 1);
+
+/* FLYTT UT OG STYR */
+
+printread(control_socket, portStr);
+    clientLen = sizeof(client_address);
+    if ((message_socket = accept(socket_fd, (struct sockaddr *) &client_address, &clientLen)) < 0)
+        pdie(1);
+
+
+    return message_socket;
 }

@@ -7,16 +7,21 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <regex.h> 
+#include <netdb.h>
 
 int connectSocket(int port);
-void pdie(int errorCode);
+void pdie(int exitCode);
 void printGlobalArgs();
 void ftpClient();
 int authentificate(int socket, char recvBuff[], char sendBuff[]);
 void printread(int socket, char recvBuff[]);
 int findPasvPort(char searchString[]);
 void substrafter(char out[], char in[], char needle[], int nr);
-void retriveFile();
+int findBytes(char haystack[]);
+void retriveFile(char sendBuff[], char recvBuff[], int control_socket);
+void setType(int control_socket, char sendBuff[]);
+void portString(char out[], int port);
+int openServerSocket(int control_socket, char portStr[]);
 
 
 struct globalArgs_t {
