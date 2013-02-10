@@ -13,15 +13,17 @@ int connectSocket(int port);
 void pdie(int exitCode);
 void printGlobalArgs();
 void ftpClient();
-int authentificate(int socket, char recvBuff[], char sendBuff[]);
-void printread(int socket, char recvBuff[]);
+void authentificate(int socket, char recvBuff[], char sendBuff[]);
+void logRead(int socket, char recvBuff[]);
+void logWrite(int socket, char sendBuff[]);
 int findPasvPort(char searchString[]);
 void substrafter(char out[], char in[], char needle[], int nr);
 int findBytes(char haystack[]);
 void retriveFile(char sendBuff[], char recvBuff[], int control_socket);
 void setType(int control_socket, char sendBuff[]);
-void portString(char out[], int port);
-int openServerSocket(int control_socket, char portStr[]);
+void portString(char out[], int connectSocket);
+int openServerSocket();
+int connectToMessageSocket(int connectSocket);
 
 
 struct globalArgs_t {
@@ -33,9 +35,10 @@ struct globalArgs_t {
 	int active;			/* -a option */
 	char *mode;			/* -m option */
 	char *logfile;		/* -l option */
+	FILE *log;
 } gArgs;
 
-static const char *optString = "hvaf:s:p:n:P:m:l";
+static const char *optString = "hvaf:s:p:n:P:m:l:";
 
 static const struct option longOpts[] = {
 	{ "version", no_argument, NULL, 'v' },

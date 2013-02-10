@@ -16,21 +16,19 @@ void ftpClient() {
     authentificate(control_socket, recvBuff, sendBuff);
 
     strcpy(sendBuff, "SYST\r\n");
-    write(control_socket, sendBuff, strlen(sendBuff));
+    logWrite(control_socket, sendBuff);
 
-    printread(control_socket, recvBuff);
+    logRead(control_socket, recvBuff);
 
     setType(control_socket, sendBuff);
 
-    printread(control_socket, recvBuff);
+    logRead(control_socket, recvBuff);
 
     retriveFile(sendBuff, recvBuff, control_socket);
     
-    printread(control_socket, recvBuff);
+    logRead(control_socket, recvBuff);
 
 //   if (strncmp(recvBuff, "150  ", 3) == 0)
-
-    exit(0);
 
 }
 
@@ -64,36 +62,28 @@ int findPasvPort(char searchString[]) {
 }
 
 /* Returns 0 if succeded the authentification, -1 if error */ 
-int authentificate(int socket, char recvBuff[], char sendBuff[]){
+void authentificate(int socket, char recvBuff[], char sendBuff[]){
     int n = 0;
-    printf("In authentificate: %d\n", sizeof(recvBuff));
-    printread(socket, recvBuff);
+    logRead(socket, recvBuff);
  
     if (strncmp(recvBuff, "220", 3) == 0) {
-        strcpy(sendBuff, "USER ");
-        strcat(sendBuff, gArgs.username);
-        strcat(sendBuff, "\r\n");
-        write(socket, sendBuff, strlen(sendBuff));
+        sprintf(sendBuff, "USER %s\r\n", gArgs.username);
+        logWrite(socket, sendBuff);
     }
-    printread(socket, recvBuff);
-
+    logRead(socket, recvBuff);
     if (strncmp(recvBuff, "331", 3) == 0) {
-        strcpy(sendBuff, "PASS ");
-        strcat(sendBuff, gArgs.password);
-        strcat(sendBuff, "\r\n");
-        write(socket, sendBuff, strlen(sendBuff));
+        sprintf(sendBuff, "PASS %s\r\n", gArgs.password);
+        logWrite(socket, sendBuff);
     }
     
-    printread(socket, recvBuff);
+    logRead(socket, recvBuff);
     
-    if (strncmp(recvBuff, "230", 3) == 0) {
-        return 0;        
-    }else if (recvBuff, "530"){
+    if (strncmp(recvBuff, "230", 3) != 0) {
         pdie(2);
     }
 }
 
-void printread(int socket, char recvBuff[]){
+void logRead(int socket, char recvBuff[]){
     int n;
 
     n = read(socket, recvBuff, BUFFER_SIZE-1);     
@@ -105,9 +95,24 @@ void printread(int socket, char recvBuff[]){
     
     recvBuff[n] = 0;
 
-    if(fputs(recvBuff, stdout) == EOF) {
-        printf("\n Error : Fputs error\n");
-        pdie(7);
+    printf("S->C: %s", recvBuff);
+
+    if (gArgs.logfile != NULL) {
+        char logtmp[100];
+        sprintf(logtmp, "S->C: %s", recvBuff);
+        fwrite(logtmp, 1, strlen(logtmp), gArgs.log);
+    }
+}
+
+void logWrite(int socket, char sendBuff[]) {
+    write(socket, sendBuff, strlen(sendBuff));
+    printf("C->S: %s", sendBuff);
+
+
+    if (gArgs.logfile != NULL) {
+        char logtmp[100];
+        sprintf(logtmp, "C->S: %s", sendBuff);
+        fwrite(logtmp, 1, strlen(logtmp), gArgs.log);
     }
 }
 
@@ -174,35 +179,59 @@ void retriveFile(char sendBuff[], char recvBuff[], int control_socket){
     }
 
     if (gArgs.active) {
-        //FIX ACTIVE MODE
-        //get ip
-        
-        filesocket = openServerSocket(control_socket, sendBuff);
-        // SendBuff will now contain "PORT ip1,ip2,ip3,ip4,port1,port2"
-        printf("%s", sendBuff);
-        
+        char portStr[40];
+        int connectSocket = openServerSocket();
 
-        printread(control_socket, recvBuff);
+        /* Write portsting and recieve 200 Port successful */
+        portString(portStr, connectSocket);
+        logWrite(control_socket, portStr);
+        logRead(control_socket, recvBuff);
+
+        /* CONNECTION ERROR */
+        if (strncmp(recvBuff, "200", 3) < 0) {
+            pdie(1);
+        }
+
+        sprintf(sendBuff, "RETR %s\r\n",gArgs.downloadFile);
+        logWrite(control_socket, sendBuff);
+    
+    /* SPENNENDE FEIL!! om den neste linja er her, kommer det en 426 Failure writing network stream, 
+    ** om den ikke er der, sender den ikke feilmelding hvis fila den skal hente ikke eksisterer   
+    */ 
+    //    logRead(control_socket, recvBuff);
+        
+        /* FILE NOT FOUND */
+        if (strncmp(recvBuff, "550", 3) == 0) {
+            pdie(3);
+        }
+
+        filesocket = connectToMessageSocket(connectSocket);
+        logRead(control_socket, recvBuff);
 
     } else {
         /* PASV mode */
         int port;
         strcpy(sendBuff, "PASV\r\n");
-        write(control_socket, sendBuff, strlen(sendBuff));
-        printread(control_socket, recvBuff);
+        logWrite(control_socket, sendBuff);
+        logRead(control_socket, recvBuff);
+        if (strncmp(recvBuff, "227", 3) < 0){
+            /* Cannot enter PASV mode */
+            pdie(1);
+        }
+
         port = findPasvPort(recvBuff);
         filesocket = connectSocket(port);
+        sprintf(sendBuff, "RETR %s\r\n",gArgs.downloadFile);
+        logWrite(control_socket, sendBuff);
+        logRead(control_socket, recvBuff);
+
+        /* FILE NOT FOUND */
+        if (strncmp(recvBuff, "550", 3) == 0) {
+            pdie(3);
+        }
     }
-
-    strcpy(sendBuff, "RETR ");
-    strcat(sendBuff, gArgs.downloadFile);
-    strcat(sendBuff, "\r\n");
-    write(control_socket, sendBuff, strlen(sendBuff));
-    printread(control_socket, recvBuff);
-
+    
     bytesToDownload = findBytes(recvBuff);
-
-    printf("%d\n", bytesToDownload);
 
     p = fopen(gArgs.downloadFile, "w");
     if (p== NULL) {
@@ -226,18 +255,25 @@ void setType(int control_socket, char sendBuff[]){
 
     if (strcmp(gArgs.mode, "binary") == 0 ) {
         strcpy(sendBuff, "TYPE I\r\n");
-        write(control_socket, sendBuff, strlen(sendBuff));
     } else if (strcmp(gArgs.mode, "ASCII") == 0) {
         strcpy(sendBuff, "TYPE A\r\n");
     }
+    logWrite(control_socket, sendBuff);
 }
  
 /* port string */
-void portString(char out[], int port) {
+void portString(char out[], int connectSocket) {
     char hostn[400]; //placeholder for the hostname
     char tmp[5];
     struct hostent *hostIP; //placeholder for the IP address
-    int i;
+    struct sockaddr_in tmpSock;
+    int i, port;
+    int tmpSockLen;
+
+    /* get port nr */
+    tmpSockLen = sizeof(tmpSock);
+    getsockname(connectSocket, (struct sockaddr *) &tmpSock, &tmpSockLen);
+    port = ntohs(tmpSock.sin_port);
 
     if(gethostname(hostn, sizeof(hostn)) == 0) {
         hostIP = gethostbyname(hostn); //the netdb.h function gethostbyname
@@ -248,21 +284,17 @@ void portString(char out[], int port) {
                 hostn[i] = ',';
         }
         sprintf(out, "PORT %s,%d,%d\r\n", hostn, port/256, port%256);
+    }else {
+        pdie(2);
     }
 }
 
 
-int openServerSocket(int control_socket, char portStr[]) {
+int openServerSocket() {
     int socket_fd;
     int message_socket;
     struct sockaddr_in server_address;
-    struct sockaddr_in client_address;
-    struct sockaddr_in tmp;
-    int tmpLen;
-    int clientLen;
-    int rval;
-    char buf[BUFFER_SIZE]; 
-
+    
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     bzero ((char *) &server_address, sizeof(server_address));
@@ -270,26 +302,26 @@ int openServerSocket(int control_socket, char portStr[]) {
     server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(0);
 
-    if (bind(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)))
+    if (bind(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address))){
         pdie(1);
+    }
+    return socket_fd;
 
-    tmpLen = sizeof(tmp);
-    getsockname(socket_fd, (struct sockaddr *) &tmp, &tmpLen);
+}
 
-    portString(portStr, ntohs(tmp.sin_port));
+int connectToMessageSocket(int connectSocket){
+    int clientLen, message_socket;
+    struct sockaddr_in client_address;   /* socket struct for client connection */
 
-    printf("%s\n", portStr);
-    write(control_socket, portStr, strlen(portStr));
-   
-    listen(socket_fd, 1);
-
-/* FLYTT UT OG STYR */
-
-printread(control_socket, portStr);
+    listen(connectSocket, 5);
     clientLen = sizeof(client_address);
-    if ((message_socket = accept(socket_fd, (struct sockaddr *) &client_address, &clientLen)) < 0)
+    if ((message_socket = accept(connectSocket, (struct sockaddr *) &client_address, &clientLen)) < 0){
         pdie(1);
-
+    }
 
     return message_socket;
+
 }
+
+
+

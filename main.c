@@ -18,45 +18,49 @@ void printVersion() {
 /* prints the right exit message to stderr and exits */
 void pdie(int exitCode){
 	char exitMessage[50];
+
 	switch (exitCode) {
 		case 0:
-			strcpy(exitMessage, "Operation successfully completed");
+			sprintf(exitMessage, "Exit(%d): Operation successfully completed", exitCode);;
 			break;
 
 		case 1:
-			strcpy(exitMessage, "Can't connect to server");
+			sprintf(exitMessage, "Exit(%d): Can't connect to server", exitCode);
 			break;		
 
 		case 2:
-			strcpy(exitMessage, "Authentification failed");
+			sprintf(exitMessage, "Exit(%d):Authentification failed", exitCode);
 			break;
 
 		case 3:
-			strcpy(exitMessage, "File not found");
+			sprintf(exitMessage, "Exit(%d): File not found", exitCode);
 			break;
 			
 		case 4:
-			strcpy(exitMessage, "Syntax error in client request");
+			sprintf(exitMessage, "Exit(%d): Syntax error in client request", exitCode);
 			break;
 			
 		case 5:
-			strcpy(exitMessage, "Command not implemented by server");
+			sprintf(exitMessage, "Exit(%d): Command not implemented by server", exitCode);
 			break;
 			
 		case 6: 
-			strcpy(exitMessage, "Operation not allowed by server");
+			sprintf(exitMessage, "Exit(%d): Operation not allowed by server", exitCode);
 			break;
 			
 		case 7:
-			strcpy(exitMessage, "Generic Error");
+			sprintf(exitMessage, "Exit(%d): Generic Error", exitCode);
 			break;
 			
 		default:
 			/* Should never get here */
 			strcpy(exitMessage, "ERROR");
 			break;
+	} 
+	if (gArgs.logfile != NULL){
+		fwrite(exitMessage, 1, strlen(exitMessage), gArgs.log);
+		fclose(gArgs.log);
 	}
-
 	fprintf(stderr, "%s\n", exitMessage);
 	exit(exitCode);
 
@@ -113,6 +117,7 @@ int main(int argc, char **argv) {
 
 			case 'l':
 				gArgs.logfile = optarg;
+				gArgs.log = fopen(gArgs.logfile, "w");
 				break;
 
 			case 'h':
@@ -138,6 +143,7 @@ int main(int argc, char **argv) {
 	
 	ftpClient();
 
+	pdie(0);
 }
 
 
