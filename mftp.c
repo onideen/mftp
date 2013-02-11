@@ -4,16 +4,16 @@ static const BUFFER_SIZE = 1024;
 /**** !!!!!!!!!!!!!!!!!! KAN SPARE MANGE LINJER 
 ***************** sprintf(str, "%d", aInt);
 **/
-void ftpClient() {
+void *ftpClient(struct ftpArgs_t *ftpConf) {
     int control_socket = 0, i;
     char recvBuff[BUFFER_SIZE], sendBuff[BUFFER_SIZE];
 
     memset(recvBuff, '0', sizeof(recvBuff));
     memset(sendBuff, '0', sizeof(sendBuff));
-
-    control_socket = connectSocket(gArgs.port);
+  
+    control_socket = connectSocket(ftpConf->hostname, ftpConf->port);
     
-    authentificate(control_socket, recvBuff, sendBuff);
+    authentificate(ftpConf, control_socket, recvBuff, sendBuff);
 
     strcpy(sendBuff, "SYST\r\n");
     logWrite(control_socket, sendBuff);
@@ -24,11 +24,9 @@ void ftpClient() {
 
     logRead(control_socket, recvBuff);
 
-    retriveFile(sendBuff, recvBuff, control_socket);
+    retriveFile(ftpConf, sendBuff, recvBuff, control_socket);
     
     logRead(control_socket, recvBuff);
-
-//   if (strncmp(recvBuff, "150  ", 3) == 0)
 
 }
 
@@ -62,17 +60,17 @@ int findPasvPort(char searchString[]) {
 }
 
 /* Returns 0 if succeded the authentification, -1 if error */ 
-void authentificate(int socket, char recvBuff[], char sendBuff[]){
+void authentificate(struct ftpArgs_t *ftpConf, int socket, char recvBuff[], char sendBuff[]){
     int n = 0;
     logRead(socket, recvBuff);
  
     if (strncmp(recvBuff, "220", 3) == 0) {
-        sprintf(sendBuff, "USER %s\r\n", gArgs.username);
+        sprintf(sendBuff, "USER %s\r\n", ftpConf->username);
         logWrite(socket, sendBuff);
     }
     logRead(socket, recvBuff);
     if (strncmp(recvBuff, "331", 3) == 0) {
-        sprintf(sendBuff, "PASS %s\r\n", gArgs.password);
+        sprintf(sendBuff, "PASS %s\r\n", ftpConf->password);
         logWrite(socket, sendBuff);
     }
     
@@ -116,21 +114,18 @@ void logWrite(int socket, char sendBuff[]) {
     }
 }
 
-int connectSocket(int port) {
+int connectSocket(char hostname[], int port) {
     struct hostent *he;
     int socket_fd = 0;
     struct sockaddr_in server_address; 
-
     memset(&server_address, '0', sizeof(server_address)); 
 
     if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("\n Error : Could not create socket \n");
-        exit(0);
+        pdie(1);
     } 
 
-    if ((he = gethostbyname(gArgs.hostname)) == NULL) {
-        puts("error resolving hostname..");
-        exit(1);
+    if ((he = gethostbyname(hostname)) == NULL) {
+        pdie(1);
     }
 
     memcpy(&server_address.sin_addr, he->h_addr_list[0], he->h_length);
@@ -167,7 +162,7 @@ int findBytes(char haystack[]) {
     return atoi(b);
 }
 
-void retriveFile(char sendBuff[], char recvBuff[], int control_socket){
+void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], int control_socket){
     int filesocket = 0, bytesToDownload = 0, received = 0, n;
     unsigned char fileRecv[1024];
     FILE *p = NULL;
@@ -220,7 +215,7 @@ void retriveFile(char sendBuff[], char recvBuff[], int control_socket){
         }
 
         port = findPasvPort(recvBuff);
-        filesocket = connectSocket(port);
+        filesocket = connectSocket(ftpConf->hostname, port);
         sprintf(sendBuff, "RETR %s\r\n",gArgs.downloadFile);
         logWrite(control_socket, sendBuff);
         logRead(control_socket, recvBuff);

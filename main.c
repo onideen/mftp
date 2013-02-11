@@ -69,9 +69,12 @@ void pdie(int exitCode){
 
 
 int main(int argc, char **argv) {
-	int opt = 0;
+	int opt = 0, j;
 	int longIndex = 0;
-	
+	struct ftpArgs_t *hosts;
+	pthread_t *threads;
+
+
 	if (argc == 1) {
 		printUsage();
 	}
@@ -85,6 +88,7 @@ int main(int argc, char **argv) {
 	gArgs.active = 0; /* False */
 	gArgs.mode = "binary";
 	gArgs.logfile = NULL;
+	gArgs.nthreads = 1;
 	
 
 	opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
@@ -128,27 +132,128 @@ int main(int argc, char **argv) {
 				printVersion();
 				break;
 
+			case 'w':
+				gArgs.swarmfile = optarg;
+				break;
 			default:
 				/* Will never get here */
 				break;
 
 		}
-		
+
 		opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 
 	}
 
 
-//	printGlobalArgs();
+	if (gArgs.swarmfile == NULL) {
+		hosts = malloc(sizeof(struct ftpArgs_t));
+		hosts[0].hostname = gArgs.hostname;
+		hosts[0].port = gArgs.port;
+		hosts[0].username = gArgs.username;
+		hosts[0].password = gArgs.password;
+		hosts[0].threadNr = 0;
 	
-	ftpClient();
+	} else {
+		FILE *file = fopen(gArgs.swarmfile, "r");
+		int lines = 0, i;
+		char c; 
+
+		//Count lines in file
+		while((c = fgetc(file)) != EOF) {	
+			if(c == '\n') {	
+				lines++;
+			}
+		}
+
+		if (c != '\n') lines++;
+		fclose(file);
+
+		gArgs.nthreads = lines;
+		
+		file = fopen(gArgs.swarmfile, "r");
+		hosts = malloc(sizeof(struct ftpArgs_t) * lines);
+
+		for (i = 0; i < lines; i++) {
+			char tmp[200];
+			char line[200];
+
+			fgets(line, sizeof(line),file);
+
+			if (i == lines-1)
+				strcat(line, "\n");
+
+			if (strlen(line) < 5)
+				continue;
+						
+			parseSwarmConf(tmp, 'u', line);
+			hosts[i].username = malloc(sizeof(char) * strlen(tmp));
+			strcpy(hosts[i].username, tmp);
+			
+			parseSwarmConf(tmp, 'p', line);
+			hosts[i].password = malloc(sizeof(char) * strlen(tmp));
+			strcpy(hosts[i].password, tmp);
+			
+			parseSwarmConf(tmp, 'h', line);
+			hosts[i].hostname = malloc(sizeof(char) * strlen(tmp));
+			strcpy(hosts[i].hostname, tmp);
+			
+			parseSwarmConf(tmp, 'f', line);
+			hosts[i].hostname = malloc(sizeof(char) * strlen(tmp));
+			strcpy(hosts[i].hostname, tmp);
+			
+
+
+			hosts[i].port = 21;
+			hosts[i].threadNr = i;
+			
+			printf("username: %s\nhostname: %s\npassword: %s\nport: %d\nthreadNr: %d\n", hosts[i].username, hosts[i].hostname, hosts[i].password, hosts[i].port, hosts[i].threadNr);
+		}
+	}
+	threads = malloc(sizeof (pthread_t)*gArgs.nthreads);
+	
+	exit(0);
+
+	for (j = 0; j < gArgs.nthreads; j++) {
+		pthread_t_create(&threads[j], NULL, ftpClient, &hosts[j]);
+	}
+
 
 	pdie(0);
 }
 
 
+void parseSwarmConf(char out[], char opt, char line[]) {
+	char tmp[strlen(line)];
+	char b[400];
+	char e[400];
+
+	switch (opt){
+		case 'u': //get username
+			substrafter(b, line, "/", 2);
+			substrafter(e, b, ":", 1);		
+			break;
+		case 'p': //get password
+			substrafter(b, line, ":", 2);
+			substrafter(e, b, "@", 1);		
+			break;
+		case 'h': //get hostname
+			substrafter(b, line, "@", 1);
+			substrafter(e, b, "/", 1);
+			break;
+		case 'f':
+			substrafter(b, line, "/", 3);
+			substrafter(e, b, "\n", 1);
+			break; 
+	}
+
+	b[strlen(b)-strlen(e)-1] = 0;
+	
+	sprintf(out, "%s", &b[0]);
+	
+}
+
 void printGlobalArgs() {
 	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.downloadFile, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
 
 }
-
