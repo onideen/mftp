@@ -169,9 +169,7 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
     int connect_socket;
     unsigned char fileRecv[1024];
     FILE *p = NULL;
-    pthread_mutex_t *mut;
-
-//    pthread_mutex_init (mut, NULL);
+    pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
 
     memset(fileRecv, 0, sizeof(fileRecv));
 
@@ -237,6 +235,7 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         }
     }
 
+
     if (ftpConf->threadNr == 0) {    
         bytesToDownload = findBytes(recvBuff);
         gArgs.filesize = bytesToDownload;
@@ -248,6 +247,8 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         pthread_join(threads[i], NULL);
     }
 
+    bytesToDownload = (ftpConf->threadNr != gArgs.nthreads - 1) ? ceil(gArgs.filesize/gArgs.nthreads) : gArgs.filesize - ceil(gArgs.filesize/gArgs.nthreads) *(gArgs.nthreads-1);
+    printf("%d\n", bytesToDownload);
     if (ftpConf->threadNr > 0 ){
         sprintf(sendBuff, "REST %s %d\r\n",ftpConf->filename, gArgs.filesize/gArgs.nthreads * ftpConf->threadNr);
         logWrite(control_socket, sendBuff);
@@ -257,18 +258,20 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
     }
 
 
-    while (received < bytesToDownload / gArgs.nthreads) {
+    while (received < bytesToDownload) {
         n = read(filesocket, fileRecv, BUFFER_SIZE-1);;
         
- //       pthread_mutex_lock (mut);
+        pthread_mutex_lock (&mut);
         p = fopen(gArgs.filename, "a+");
         fseek(p, received, SEEK_SET);
         fwrite(fileRecv, 1, n, p);
         fclose(p); 
-//        pthread_mutex_unlock (mut);
+        pthread_mutex_unlock (&mut);
         received += n;
+        printf("%d\n", received);
     }
-   
+
+    printf("YOLO\n" );
 }
 
 

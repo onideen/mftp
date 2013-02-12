@@ -1,3 +1,5 @@
+#define _MULTI_THREADED
+
 #include <stdio.h>     /* for printf */
 #include <stdlib.h>    /* for exit */
 #include <getopt.h>
@@ -10,6 +12,7 @@
 #include <regex.h> 
 #include <netdb.h>
 #include <pthread.h>
+#include <math.h>
 
 struct globalArgs_t {
 	char *filename;	/* -f option */
@@ -54,6 +57,7 @@ static const struct option longOpts[] = {
 };
 
 pthread_t *threads;
+
 
 void *ftpClient(void *ftpConf);
 int connectSocket(char hostname[], int port);
