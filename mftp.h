@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <string.h> /* memset */
 #include <unistd.h> /* close */
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -11,7 +12,7 @@
 #include <pthread.h>
 
 struct globalArgs_t {
-	char *downloadFile;	/* -f option */
+	char *filename;	/* -f option */
 	char *hostname;		/* -s option */
 	int port;			/* -p option */
 	char *username;		/* -n option */	
@@ -21,6 +22,7 @@ struct globalArgs_t {
 	char *logfile;		/* -l option */
 	FILE *log;
 	char *swarmfile;
+	int filesize;
 	int nthreads;
 } gArgs;
 
@@ -50,6 +52,8 @@ static const struct option longOpts[] = {
 	{ "swarm-config-file", required_argument, NULL, 'w' },
 	{ NULL, no_argument, NULL, 0 }
 };
+
+pthread_t *threads;
 
 void *ftpClient(void *ftpConf);
 int connectSocket(char hostname[], int port);

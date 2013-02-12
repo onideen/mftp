@@ -11,8 +11,6 @@ void *ftpClient(void * ftpConfvoid) {
 
     ftpConf = (struct ftpArgs_t *)ftpConfvoid;
 
-        printf("username: %s\nhostname: %s\npassword: %s\nport: %d\nthreadNr: %d\n", ftpConf->username, ftpConf->hostname, ftpConf->password, ftpConf->port, ftpConf->threadNr);
-
     memset(recvBuff, '0', sizeof(recvBuff));
     memset(sendBuff, '0', sizeof(sendBuff));
   
@@ -167,9 +165,13 @@ int findBytes(char haystack[]) {
 }
 
 void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], int control_socket){
-    int filesocket = 0, bytesToDownload = 0, received = 0, n;
+    int filesocket = 0, bytesToDownload = 0, received = 0, n, i;
+    int connect_socket;
     unsigned char fileRecv[1024];
     FILE *p = NULL;
+    pthread_mutex_t *mut;
+
+//    pthread_mutex_init (mut, NULL);
 
     memset(fileRecv, 0, sizeof(fileRecv));
 
@@ -179,10 +181,10 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
 
     if (gArgs.active) {
         char portStr[40];
-        int connectSocket = openServerSocket();
+        connect_socket = openServerSocket();
 
         /* Write portsting and recieve 200 Port successful */
-        portString(portStr, connectSocket);
+        portString(portStr, connect_socket);
         logWrite(control_socket, portStr);
         logRead(control_socket, recvBuff);
 
@@ -190,22 +192,25 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         if (strncmp(recvBuff, "200", 3) < 0) {
             pdie(1);
         }
+        if (ftpConf->threadNr == 0) {    
+            sprintf(sendBuff, "RETR %s\r\n",ftpConf->filename);
+            logWrite(control_socket, sendBuff);
 
-        sprintf(sendBuff, "RETR %s\r\n",ftpConf->filename);
-        logWrite(control_socket, sendBuff);
+            /* SPENNENDE FEIL!! om den neste linja er her, kommer det en 426 Failure writing network stream, 
+            ** om den ikke er der, sender den ikke feilmelding hvis fila den skal hente ikke eksisterer   
+            */ 
+            //    logRead(control_socket, recvBuff);
+                
     
-    /* SPENNENDE FEIL!! om den neste linja er her, kommer det en 426 Failure writing network stream, 
-    ** om den ikke er der, sender den ikke feilmelding hvis fila den skal hente ikke eksisterer   
-    */ 
-    //    logRead(control_socket, recvBuff);
+            if (strncmp(recvBuff, "550", 3) == 0) {
+                pdie(3);
+            }
+
+            filesocket = connectToMessageSocket(connect_socket);
+            logRead(control_socket, recvBuff);
+        }
         
         /* FILE NOT FOUND */
-        if (strncmp(recvBuff, "550", 3) == 0) {
-            pdie(3);
-        }
-
-        filesocket = connectToMessageSocket(connectSocket);
-        logRead(control_socket, recvBuff);
 
     } else {
         /* PASV mode */
@@ -220,32 +225,50 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
 
         port = findPasvPort(recvBuff);
         filesocket = connectSocket(ftpConf->hostname, port);
-        sprintf(sendBuff, "RETR %s\r\n",gArgs.downloadFile);
-        logWrite(control_socket, sendBuff);
-        logRead(control_socket, recvBuff);
+        if (ftpConf->threadNr == 0) {    
+            sprintf(sendBuff, "RETR %s\r\n",ftpConf->filename);
+            logWrite(control_socket, sendBuff);
+            logRead(control_socket, recvBuff);
 
-        /* FILE NOT FOUND */
-        if (strncmp(recvBuff, "550", 3) == 0) {
-            pdie(3);
+            /* FILE NOT FOUND */
+            if (strncmp(recvBuff, "550", 3) == 0) {
+                pdie(3);
+            }
         }
     }
-    
-    bytesToDownload = findBytes(recvBuff);
 
-    p = fopen(gArgs.downloadFile, "w");
-    if (p== NULL) {
-        printf("Error in opening a file..", gArgs.downloadFile);
+    if (ftpConf->threadNr == 0) {    
+        bytesToDownload = findBytes(recvBuff);
+        gArgs.filesize = bytesToDownload;
+        p = fopen(gArgs.filename, "w");
+        fclose(p);
     }
 
-    while (received < bytesToDownload) {
+    for (i = 0; i < gArgs.nthreads; i++){
+        pthread_join(threads[i], NULL);
+    }
+
+    if (ftpConf->threadNr > 0 ){
+        sprintf(sendBuff, "REST %s %d\r\n",ftpConf->filename, gArgs.filesize/gArgs.nthreads * ftpConf->threadNr);
+        logWrite(control_socket, sendBuff);
+
+        if (gArgs.active) filesocket = connectToMessageSocket(connect_socket);
+        logRead(control_socket, recvBuff);
+    }
+
+
+    while (received < bytesToDownload / gArgs.nthreads) {
         n = read(filesocket, fileRecv, BUFFER_SIZE-1);;
         
+ //       pthread_mutex_lock (mut);
+        p = fopen(gArgs.filename, "a+");
+        fseek(p, received, SEEK_SET);
         fwrite(fileRecv, 1, n, p);
-
+        fclose(p); 
+//        pthread_mutex_unlock (mut);
         received += n;
     }
    
-    fclose(p); 
 }
 
 

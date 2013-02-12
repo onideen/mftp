@@ -72,15 +72,14 @@ int main(int argc, char **argv) {
 	int opt = 0, j;
 	int longIndex = 0;
 	struct ftpArgs_t *hosts;
-	pthread_t *threads;
-
+	FILE *test;
 
 	if (argc == 1) {
 		printUsage();
 	}
 
 	/* Initialize gArgs before with default values */
-	gArgs.downloadFile = NULL;
+	gArgs.filename = NULL;
 	gArgs.hostname = NULL;
 	gArgs.port = 21;
 	gArgs.username = "anonymous";
@@ -90,13 +89,21 @@ int main(int argc, char **argv) {
 	gArgs.logfile = NULL;
 	gArgs.nthreads = 1;
 	
+	test = fopen("test.txt", "wb");
+
+	fseek(test, 4, SEEK_SET);
+	fwrite("heisann", 1, 7, test);
+	
+	fclose(test);
+
+	//exit(0);
 
 	opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 
 	while( opt != -1 ) {
 		switch( opt ){
 			case 'f':
-				gArgs.downloadFile = optarg;
+				gArgs.filename = optarg;
 				break;
 
 			case 's':
@@ -153,7 +160,7 @@ int main(int argc, char **argv) {
 		hosts[0].username = gArgs.username;
 		hosts[0].password = gArgs.password;
 		hosts[0].threadNr = 0;
-	
+		hosts[0].filename = gArgs.filename;
 	} else {
 		FILE *file = fopen(gArgs.swarmfile, "r");
 		int lines = 0, i;
@@ -167,11 +174,10 @@ int main(int argc, char **argv) {
 		}
 
 		if (c != '\n') lines++;
-		fclose(file);
+		rewind(file);
 
 		gArgs.nthreads = lines;
 		
-		file = fopen(gArgs.swarmfile, "r");
 		hosts = malloc(sizeof(struct ftpArgs_t) * lines);
 
 		for (i = 0; i < lines; i++) {
@@ -207,8 +213,8 @@ int main(int argc, char **argv) {
 			hosts[i].port = 21;
 			hosts[i].threadNr = i;
 			
-			//printf("username: %s\nhostname: %s\npassword: %s\nport: %d\nthreadNr: %d\n", hosts[i].username, hosts[i].hostname, hosts[i].password, hosts[i].port, hosts[i].threadNr);
 		}
+		gArgs.filename = hosts[0].filename;
 	}
 	threads = malloc(sizeof (pthread_t)*gArgs.nthreads);
 	
@@ -255,6 +261,6 @@ void parseSwarmConf(char out[], char opt, char line[]) {
 }
 
 void printGlobalArgs() {
-	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.downloadFile, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
+	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.filename, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
 
 }
