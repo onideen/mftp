@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <regex.h> 
 #include <netdb.h>
+#include <pthread.h>
 
 struct globalArgs_t {
 	char *downloadFile;	/* -f option */
@@ -50,7 +51,7 @@ static const struct option longOpts[] = {
 	{ NULL, no_argument, NULL, 0 }
 };
 
-void *ftpClient(struct ftpArgs_t *ftpConf);
+void *ftpClient(void *ftpConf);
 int connectSocket(char hostname[], int port);
 void pdie(int exitCode);
 void printGlobalArgs();

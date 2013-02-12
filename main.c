@@ -199,25 +199,26 @@ int main(int argc, char **argv) {
 			strcpy(hosts[i].hostname, tmp);
 			
 			parseSwarmConf(tmp, 'f', line);
-			hosts[i].hostname = malloc(sizeof(char) * strlen(tmp));
-			strcpy(hosts[i].hostname, tmp);
+			hosts[i].filename = malloc(sizeof(char) * strlen(tmp));
+			strcpy(hosts[i].filename, tmp);
 			
 
 
 			hosts[i].port = 21;
 			hosts[i].threadNr = i;
 			
-			printf("username: %s\nhostname: %s\npassword: %s\nport: %d\nthreadNr: %d\n", hosts[i].username, hosts[i].hostname, hosts[i].password, hosts[i].port, hosts[i].threadNr);
+			//printf("username: %s\nhostname: %s\npassword: %s\nport: %d\nthreadNr: %d\n", hosts[i].username, hosts[i].hostname, hosts[i].password, hosts[i].port, hosts[i].threadNr);
 		}
 	}
 	threads = malloc(sizeof (pthread_t)*gArgs.nthreads);
 	
-	exit(0);
+	//exit(0);
 
 	for (j = 0; j < gArgs.nthreads; j++) {
-		pthread_t_create(&threads[j], NULL, ftpClient, &hosts[j]);
+		pthread_create(&threads[j], NULL, ftpClient, &hosts[j]);
 	}
 
+	 pthread_exit(NULL);
 
 	pdie(0);
 }

@@ -4,9 +4,14 @@ static const BUFFER_SIZE = 1024;
 /**** !!!!!!!!!!!!!!!!!! KAN SPARE MANGE LINJER 
 ***************** sprintf(str, "%d", aInt);
 **/
-void *ftpClient(struct ftpArgs_t *ftpConf) {
+void *ftpClient(void * ftpConfvoid) {
     int control_socket = 0, i;
     char recvBuff[BUFFER_SIZE], sendBuff[BUFFER_SIZE];
+    struct ftpArgs_t *ftpConf;
+
+    ftpConf = (struct ftpArgs_t *)ftpConfvoid;
+
+        printf("username: %s\nhostname: %s\npassword: %s\nport: %d\nthreadNr: %d\n", ftpConf->username, ftpConf->hostname, ftpConf->password, ftpConf->port, ftpConf->threadNr);
 
     memset(recvBuff, '0', sizeof(recvBuff));
     memset(sendBuff, '0', sizeof(sendBuff));
@@ -25,7 +30,6 @@ void *ftpClient(struct ftpArgs_t *ftpConf) {
     logRead(control_socket, recvBuff);
 
     retriveFile(ftpConf, sendBuff, recvBuff, control_socket);
-    
     logRead(control_socket, recvBuff);
 
 }
@@ -187,7 +191,7 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
             pdie(1);
         }
 
-        sprintf(sendBuff, "RETR %s\r\n",gArgs.downloadFile);
+        sprintf(sendBuff, "RETR %s\r\n",ftpConf->filename);
         logWrite(control_socket, sendBuff);
     
     /* SPENNENDE FEIL!! om den neste linja er her, kommer det en 426 Failure writing network stream, 
