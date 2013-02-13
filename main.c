@@ -5,7 +5,18 @@ void printVersion();
 
 /* NOT DONE */
 void printUsage() {
-	printf("This is the help file\n");
+	fprintf(stderr, "Proper usage is: ./mftp [OPTIONS] \n");
+	fprintf(stderr, "Option list: \n");
+	fprintf(stderr, "\t [-h] or [--help]\tDisplays this helpfile\n");
+	fprintf(stderr, "\t [-v] or [--version]\tPrints the name of the application and author\n");
+	fprintf(stderr, "\t [-f file] or [--file file]\tSpecifies the file to download\n");
+	fprintf(stderr, "\t [-s hostname] or [--server hostname]\tSpecifies the server to download file from\n");
+	fprintf(stderr, "\t [-p port] or [--port port]\tSpecifies the port to be used when contacting the server. (default value: 21).\n");
+	fprintf(stderr, "\t [-n user] or [--user user]\tUses the username user when contacting the server (default value: anonymous)\n");
+	fprintf(stderr, "\t [-P password] or [--password password]\tUses the password password when logging into the FTP server (default value: user@localhost.localnet)\n");
+	fprintf(stderr, "\t [-a] or [--active]\tForces active behavior (the server opens the data connection to the client) (default behavior: passive behavior)\n");
+	fprintf(stderr, "\t [-m] or [--mode]\tSpecifies the mode to be used for the transfer (ASCII or binary) (default value: binary)\n");
+	fprintf(stderr, "\t [-l logfile] or [--log logfile]\tLogs all the FTP commands exchanged with the server and the corresponding replies to file logfile. \n");
 	exit(0);
 }
 
