@@ -25,7 +25,6 @@ struct globalArgs_t {
 	char *logfile;		/* -l option */
 	FILE *log;
 	char *swarmfile;
-	int filesize;
 	int nthreads;
 } gArgs;
 
@@ -57,18 +56,17 @@ static const struct option longOpts[] = {
 };
 
 pthread_t *threads;
-
+pthread_mutex_t mut;
 
 void *ftpClient(void *ftpConf);
 int connectSocket(char hostname[], int port);
 void pdie(int exitCode);
 void printGlobalArgs();
 void authentificate(struct ftpArgs_t *ftpConf, int socket, char recvBuff[], char sendBuff[]);
-void logRead(int socket, char recvBuff[]);
+int logRead(int socket, char recvBuff[]);
 void logWrite(int socket, char sendBuff[]);
 int findPasvPort(char searchString[]);
-void substrafter(char out[], char in[], char needle[], int nr);
-int findBytes(char haystack[]);
+int substrafter(char out[], char in[], char needle, int nr);
 void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], int control_socket);
 void setType(int control_socket, char sendBuff[]);
 void portString(char out[], int connectSocket);

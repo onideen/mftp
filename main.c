@@ -217,7 +217,9 @@ int main(int argc, char **argv) {
 		gArgs.filename = hosts[0].filename;
 	}
 	threads = malloc(sizeof (pthread_t)*gArgs.nthreads);
-	
+	pthread_mutex_init(&mut, NULL);
+
+//	barriers = malloc(sizeof (pthread_barrier_t)*gArgs.nthreads);
 	//exit(0);
 
 	for (j = 0; j < gArgs.nthreads; j++) {
@@ -237,20 +239,20 @@ void parseSwarmConf(char out[], char opt, char line[]) {
 
 	switch (opt){
 		case 'u': //get username
-			substrafter(b, line, "/", 2);
-			substrafter(e, b, ":", 1);		
+			substrafter(b, line, '/', 2);
+			substrafter(e, b, ':', 1);		
 			break;
 		case 'p': //get password
-			substrafter(b, line, ":", 2);
-			substrafter(e, b, "@", 1);		
+			substrafter(b, line, ':', 2);
+			substrafter(e, b, '@', 1);		
 			break;
 		case 'h': //get hostname
-			substrafter(b, line, "@", 1);
-			substrafter(e, b, "/", 1);
+			substrafter(b, line, '@', 1);
+			substrafter(e, b, '/', 1);
 			break;
 		case 'f':
-			substrafter(b, line, "/", 3);
-			substrafter(e, b, "\n", 1);
+			substrafter(b, line, '/', 3);
+			substrafter(e, b, '\n', 1);
 			break; 
 	}
 
