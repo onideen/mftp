@@ -7,9 +7,12 @@ swarming ftp client written for cs176B
 
 USAGE
 =====
-Proper usage is: ./mftp [OPTIONS] \\
+Proper usage is: ./mftp [OPTIONS]
+
 Option list: 
- -h, --help			Displays this helpfile
+
+-h, --help			Displays this helpfile
+ 
  -v, --version			Prints the name of the application and author
  -f, --file	file		Specifies the file to download
  -s, --server	hostname	Specifies the server to download file from
