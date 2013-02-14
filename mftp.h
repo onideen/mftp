@@ -24,6 +24,7 @@ struct globalArgs_t {
 	char *mode;			/* -m option */
 	char *logfile;		/* -l option */
 	FILE *log;
+	FILE *file;
 	char *swarmfile;
 	int nthreads;
 } gArgs;
@@ -51,12 +52,13 @@ static const struct option longOpts[] = {
 	{ "active", no_argument, NULL, 'a' },
 	{ "mode", required_argument, NULL, 'm' },
 	{ "log", required_argument, NULL, 'l' },
-	{ "swarm-config-file", required_argument, NULL, 'w' },
+	{ "swarm", required_argument, NULL, 'w' },
 	{ NULL, no_argument, NULL, 0 }
 };
 
 pthread_t *threads;
-pthread_mutex_t mut;
+pthread_mutex_t mutfile;
+pthread_mutex_t mutlog;
 
 void *ftpClient(void *ftpConf);
 int connectSocket(char hostname[], int port);

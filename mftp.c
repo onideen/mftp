@@ -82,23 +82,26 @@ void authentificate(struct ftpArgs_t *ftpConf, int socket, char recvBuff[], char
 
     logRead(socket, recvBuff);
     
-    printf("RECEIVE BUFFER:\n%S", recvBuff);
+    while (strncmp(recvBuff, "230-", 4) == 0){
+        char line[BUFFER_SIZE];
+        int s, j=0, end = 0;
 
-    exit(0);    
-    logRead(socket, recvBuff);
-
-
-/*    for (i = 0; i < 9; ++i) {
-        printf("%d: \n", i);
+        while ((s = substrafter(recvBuff, recvBuff, '\n', 1)) == 0){
+            if (strncmp(recvBuff, "230 ", 4) == 0) {
+                end = 1; 
+                break;
+            }
+        }
+        if (end) break;
         logRead(socket, recvBuff);
-     } 
-  
-  */  
+    }    
 
-    exit(0);
     if (strncmp(recvBuff, "230", 3) != 0) {
+        //Authentifiaction failed
         pdie(2);
     }
+
+    exit(0);
 }
 
 int logRead(int socket, char recvBuff[]){
@@ -173,6 +176,7 @@ int substrafter(char *out, char haystack[], char needle, int nr) {
             return 0;
         }
     }
+    out = "";
     return -1;
 }
 
@@ -249,12 +253,12 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
     while (received < bytesToDownload) {
         n = read(filesocket, fileRecv, BUFFER_SIZE-1);;
         
-        pthread_mutex_lock (&mut);
+        pthread_mutex_lock (&mutfile);
         p = fopen(gArgs.filename, "a+");
         fseek(p,startPos + received, SEEK_SET);
         fwrite(fileRecv, 1, n, p);
         fclose(p); 
-        pthread_mutex_unlock (&mut);
+        pthread_mutex_unlock (&mutfile);
         received += n;
     //   printf("%d\n", received);
     }

@@ -1,26 +1,24 @@
 #include "mftp.h" 
 
-void printUsage();
-void printVersion();
+void createFileForDownload(FILE *fpt, char *filename);
 
-/* NOT DONE */
-void printUsage() {
-	fprintf(stderr, "Proper usage is: ./mftp [OPTIONS] \n");
-	fprintf(stderr, "Option list: \n");
-	fprintf(stderr, "\t [-h] or [--help]\tDisplays this helpfile\n");
-	fprintf(stderr, "\t [-v] or [--version]\tPrints the name of the application and author\n");
-	fprintf(stderr, "\t [-f file] or [--file file]\tSpecifies the file to download\n");
-	fprintf(stderr, "\t [-s hostname] or [--server hostname]\tSpecifies the server to download file from\n");
-	fprintf(stderr, "\t [-p port] or [--port port]\tSpecifies the port to be used when contacting the server. (default value: 21).\n");
-	fprintf(stderr, "\t [-n user] or [--user user]\tUses the username user when contacting the server (default value: anonymous)\n");
-	fprintf(stderr, "\t [-P password] or [--password password]\tUses the password password when logging into the FTP server (default value: user@localhost.localnet)\n");
-	fprintf(stderr, "\t [-a] or [--active]\tForces active behavior (the server opens the data connection to the client) (default behavior: passive behavior)\n");
-	fprintf(stderr, "\t [-m] or [--mode]\tSpecifies the mode to be used for the transfer (ASCII or binary) (default value: binary)\n");
-	fprintf(stderr, "\t [-l logfile] or [--log logfile]\tLogs all the FTP commands exchanged with the server and the corresponding replies to file logfile. \n");
+void printUsage(FILE *out) {
+	fprintf(out, "Proper usage is: ./mftp [OPTIONS] \n");
+	fprintf(out, "Option list: \n");
+	fprintf(out, " -h, --help\t\t\tDisplays this helpfile\n");
+	fprintf(out, " -v, --version\t\t\tPrints the name of the application and author\n");
+	fprintf(out, " -f, --file\tfile\t\tSpecifies the file to download\n");
+	fprintf(out, " -s, --server\thostname\tSpecifies the server to download file from\n");
+	fprintf(out, " -p, --port\tport\t\tSpecifies the port to be used when contacting the server.\n");
+	fprintf(out, " -n, --user\tuser\t\tUses the username user when contacting the server\n");
+	fprintf(out, " -P, --password\tpassword\tUses the password password when\n\t\t\t\t logging into the FTP server\n");
+	fprintf(out, " -a, --active\t\t\tForces active behavior\n");
+	fprintf(out, " -m, --mode\t\t\tSpecifies the mode to be\n\t\t\t\t used for the transfer (ASCII or binary)\n");
+	fprintf(out, " -l, --log\tlogfile\t\tLogs all the FTP commands exchanged with\n\t\t\t\t the server and the corresponding replies to file logfile. \n");
+	fprintf(out, " -w, --swarm\tconfig-file\tSpecifies the login, password, hostname\n\t\t\t\t and absolute path to the file to use in the\n\t\t\t\t multitheaded swarm mode\n");
 	exit(0);
 }
 
-/* NOT DONE */
 void printVersion() {
 	printf("mftp 0.1\nAuthor: Vegar Engen");
 	exit(0);
@@ -86,7 +84,7 @@ int main(int argc, char **argv) {
 	FILE *test;
 
 	if (argc == 1) {
-		printUsage();
+		printUsage(stderr);
 	}
 
 	/* Initialize gArgs before with default values */
@@ -99,15 +97,6 @@ int main(int argc, char **argv) {
 	gArgs.mode = "binary";
 	gArgs.logfile = NULL;
 	gArgs.nthreads = 1;
-	
-	test = fopen("test.txt", "wb");
-
-	fseek(test, 4, SEEK_SET);
-	fwrite("heisann", 1, 7, test);
-	
-	fclose(test);
-
-	//exit(0);
 
 	opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 
@@ -138,12 +127,17 @@ int main(int argc, char **argv) {
 				break;
 
 			case 'l':
+
 				gArgs.logfile = optarg;
-				gArgs.log = fopen(gArgs.logfile, "w");
+				if (strcmp(optarg, "-") == 0) {
+					gArgs.log = stdout;		
+				}
+				exit(0);
+				//createFileForDownload(gArgs.log, optarg);
 				break;
 
 			case 'h':
-				printUsage();
+				printUsage(stdout);
 				break;
 
 			case 'v':
@@ -276,4 +270,7 @@ void parseSwarmConf(char out[], char opt, char line[]) {
 void printGlobalArgs() {
 	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.filename, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
 
+}
+void createFileForDownload(FILE *fpt, char *filename) {
+	fpt = fopen(filename, "w");
 }
