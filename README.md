@@ -33,16 +33,23 @@ Default values:
 	password = user@localhost.localnet
 
 **Hostname** works for both dns and ip-addresses.  
-For **mode** only *binary* or *ASCII* is accepted as options.
+**Mode** only *binary* or *ASCII* is accepted as options.
+**Swarm-config** specifies a file where login info is stored in this format *ftp://username:password@server/file*
+
+Sample swarm-config-file:
+
+	ftp://anonymous:shabadabadoo@location.dnsdynamic.com/10.MB
+	ftp://anonymous:securepassword@128.111.68.213/10.MB
+
+*--help* prints usage to stdout  
+When calling the program it is required to either specify **hostname** ABD **file** OR a **swarm-config-file**.
+
 
 
 Error Handling
 --------------
+If the cli command is missing required arguments the mftp-client will exit with code 0 and print usage in stderr. 
+
+
 The mftp client checks for error responses each time it gets a response from the server. If an error response is found it exits with the appropriate exit code and write something useful to stderr.  
-
-
-
-
-
--h -> prints usage to stdout
-on error print to stderr
+If **one** thread fails, the whole program fails!
