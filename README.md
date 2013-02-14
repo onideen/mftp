@@ -1,8 +1,7 @@
-mftp
-====
+Multithreaded File Transfer Protocol
+====================================
 
-mftp is a swarming ftp client written in c in the class CS176b at UCSB. It supports download a file specified in cli. This client differs from a standard ftp client because it supports swarming downloads, which means it can download a file simultaneously from multiple ftp-servers. 
-
+The Mulitthreaded File Transfer Protocol (mftp) is a swarming ftp client written in c in the class CS176b at UCSB. It supports download a file specified in cli. The way the mftp client differs from a standard ftp client is that it supports swarming downloads, which means it can download a file simultaneously from multiple ftp-servers. 
 
 
 
