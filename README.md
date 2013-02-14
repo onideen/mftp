@@ -6,7 +6,7 @@ swarming ftp client written for cs176B
 
 
 USAGE
-=====
+-----
 Proper usage is: ./mftp [OPTIONS]
 
 Option list: 
