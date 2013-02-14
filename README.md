@@ -10,6 +10,7 @@ USAGE
 Proper usage is: ./mftp [OPTIONS]
 
 Option list: 
+	
 	-h, --help			Displays this helpfile
  	-v, --version			Prints the name of the application and author
 	-f, --file	file		Specifies the file to download
