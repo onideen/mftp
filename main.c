@@ -1,6 +1,7 @@
 #include "mftp.h" 
 
 void createFileForDownload(FILE *fpt, char *filename);
+int linesInFile(FILE *f);
 
 void printUsage(FILE *out) {
 	fprintf(out, "Proper usage is: ./mftp [OPTIONS] \n");
@@ -25,12 +26,20 @@ void printVersion() {
 }
  
 /* prints the right exit message to stderr and exits */
-void pdie(int exitCode){
+void pdie(int exitCode, char *errorMessage){
 	char exitMessage[50];
+
+	if (errorMessage != NULL) {
+		fprintf(stderr, errorMessage);
+		
+		if (gArgs.log != NULL) {
+			fprintf(gArgs.log, errorMessage);
+		}
+	}
 
 	switch (exitCode) {
 		case 0:
-			sprintf(exitMessage, "Exit(%d): Operation successfully completed", exitCode);;
+			sprintf(exitMessage, "Exit(%d): Operation successfully completed", exitCode);
 			break;
 
 		case 1:
@@ -66,11 +75,20 @@ void pdie(int exitCode){
 			strcpy(exitMessage, "ERROR");
 			break;
 	} 
-	if (gArgs.logfile != NULL){
-		fwrite(exitMessage, 1, strlen(exitMessage), gArgs.log);
+	if (gArgs.log != NULL){
+		fprintf(gArgs.log, exitMessage);
 		fclose(gArgs.log);
 	}
+
+	if (exitCode != 0) {
+		unlink(gArgs.filename);
+	}
+
+	
 	fprintf(stderr, "%s\n", exitMessage);
+	
+	
+
 	exit(exitCode);
 
 }
@@ -81,7 +99,7 @@ int main(int argc, char **argv) {
 	int opt = 0, j;
 	int longIndex = 0;
 	struct ftpArgs_t *hosts;
-	FILE *test;
+	char tmp[100];
 
 	if (argc == 1) {
 		printUsage(stderr);
@@ -127,13 +145,13 @@ int main(int argc, char **argv) {
 				break;
 
 			case 'l':
-
-				gArgs.logfile = optarg;
 				if (strcmp(optarg, "-") == 0) {
-					gArgs.log = stdout;		
-				}
-				exit(0);
-				//createFileForDownload(gArgs.log, optarg);
+					gArgs.log = stdout;
+					break;
+				} 
+				gArgs.logfile = optarg;
+
+				gArgs.log = fopen(gArgs.logfile, "w");
 				break;
 
 			case 'h':
@@ -147,6 +165,11 @@ int main(int argc, char **argv) {
 			case 'w':
 				gArgs.swarmfile = optarg;
 				break;
+
+			case '?':
+				printUsage(stderr);
+				break;
+
 			default:
 				/* Will never get here */
 				break;
@@ -154,7 +177,6 @@ int main(int argc, char **argv) {
 		}
 
 		opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
-
 	}
 
 
@@ -169,18 +191,8 @@ int main(int argc, char **argv) {
 	} else {
 		FILE *file = fopen(gArgs.swarmfile, "r");
 		int lines = 0, i;
-		char c; 
 
-		//Count lines in file
-		while((c = fgetc(file)) != EOF) {	
-			if(c == '\n') {	
-				lines++;
-			}
-		}
-
-		if (c != '\n') lines++;
-		rewind(file);
-
+		lines = linesInFile(file);
 		gArgs.nthreads = lines;
 		
 		hosts = malloc(sizeof(struct ftpArgs_t) * lines);
@@ -221,19 +233,29 @@ int main(int argc, char **argv) {
 		}
 		gArgs.filename = hosts[0].filename;
 	}
-	threads = malloc(sizeof (pthread_t)*gArgs.nthreads);
-	pthread_mutex_init(&mut, NULL);
 
-//	barriers = malloc(sizeof (pthread_barrier_t)*gArgs.nthreads);
-	//exit(0);
+	// missing arguments ????
+
+	while (substrafter(tmp, gArgs.filename, '/', 1) == 0) {
+		strcpy(gArgs.filename, tmp);
+	}
+	if (substrafter(tmp, gArgs.filename, '\n', 1) == 1) {
+		gArgs.filename[strlen(gArgs.filename)-1] = 0;
+	}
+
+	gArgs.file = fopen(gArgs.filename, "w");
+
+	threads = malloc(sizeof (pthread_t)*gArgs.nthreads);
+	pthread_mutex_init(&mutfile, NULL);
+	pthread_mutex_init(&mutlog, NULL);
 
 	for (j = 0; j < gArgs.nthreads; j++) {
 		pthread_create(&threads[j], NULL, ftpClient, &hosts[j]);
 	}
 
-	 pthread_exit(NULL);
+	pthread_exit(NULL);
 
-	pdie(0);
+	pdie(0, NULL);
 }
 
 
@@ -271,6 +293,20 @@ void printGlobalArgs() {
 	printf("Download File: %s\nHostname: %s\nPort: %d\nUsername: %s\nPassword: %s\nActive: %d\nMode: %s\nLogfile: %s\n", gArgs.filename, gArgs.hostname, gArgs.port, gArgs.username, gArgs.password, gArgs.active, gArgs.mode, gArgs.logfile);
 
 }
-void createFileForDownload(FILE *fpt, char *filename) {
-	fpt = fopen(filename, "w");
+
+int linesInFile(FILE *f){
+	char c; 
+	int lines = 0;
+
+	//Count lines in file
+	while((c = fgetc(f)) != EOF) {	
+		if(c == '\n') {	
+			lines++;
+		}
+	}
+
+	if (c != '\n') lines++;
+	rewind(f);
+
+	return lines;
 }

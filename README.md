@@ -7,7 +7,7 @@ swarming ftp client written for cs176B
 
 USAGE
 =====
-Proper usage is: ./mftp [OPTIONS] 
+Proper usage is: ./mftp [OPTIONS] \\
 Option list: 
  -h, --help			Displays this helpfile
  -v, --version			Prints the name of the application and author

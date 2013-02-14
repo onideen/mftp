@@ -7,7 +7,7 @@ static const BUFFER_SIZE = 1024;
 void *ftpClient(void * ftpConfvoid) {
     int control_socket = 0, i;
     char recvBuff[BUFFER_SIZE], sendBuff[BUFFER_SIZE];
-    struct ftpArgs_t *ftpConf;
+     struct ftpArgs_t *ftpConf;
 
     ftpConf = (struct ftpArgs_t *)ftpConfvoid;
 
@@ -98,43 +98,36 @@ void authentificate(struct ftpArgs_t *ftpConf, int socket, char recvBuff[], char
 
     if (strncmp(recvBuff, "230", 3) != 0) {
         //Authentifiaction failed
-        pdie(2);
+        pdie(2, NULL);
     }
-
-    exit(0);
 }
 
 int logRead(int socket, char recvBuff[]){
     int n;
 
     n = read(socket, recvBuff, BUFFER_SIZE-1);     
-        
+
     if(n < 0) {
-        printf("\n Read error \n");
-        pdie(7);
+        pdie(7, NULL);
     }
+
+    checkForErrorResponse(recvBuff);
     
     recvBuff[n] = 0;
 
-    printf("S->C: %s", recvBuff);
-
-    if (gArgs.logfile != NULL) {
-        char logtmp[100];
-        sprintf(logtmp, "S->C: %s", recvBuff);
-        fwrite(logtmp, 1, strlen(logtmp), gArgs.log);
+    if (gArgs.log != NULL) {
+        pthread_mutex_lock (&mutlog);
+        fprintf(gArgs.log, "S->C: %s", recvBuff);
+        pthread_mutex_unlock (&mutlog);
     }
     return n;
 }
 
 void logWrite(int socket, char sendBuff[]) {
     write(socket, sendBuff, strlen(sendBuff));
-    printf("C->S: %s", sendBuff);
 
-
-    if (gArgs.logfile != NULL) {
-        char logtmp[100];
-        sprintf(logtmp, "C->S: %s", sendBuff);
-        fwrite(logtmp, 1, strlen(logtmp), gArgs.log);
+    if (gArgs.log != NULL) {
+        fprintf(gArgs.log, "C->S: %s", sendBuff);
     }
 }
 
@@ -145,11 +138,11 @@ int connectSocket(char hostname[], int port) {
     memset(&server_address, '0', sizeof(server_address)); 
 
     if((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        pdie(1);
+        pdie(1, NULL);
     } 
 
     if ((he = gethostbyname(hostname)) == NULL) {
-        pdie(1);
+        pdie(1, NULL);
     }
 
     memcpy(&server_address.sin_addr, he->h_addr_list[0], he->h_length);
@@ -158,7 +151,7 @@ int connectSocket(char hostname[], int port) {
     server_address.sin_port = htons(port); 
 
     if( connect(socket_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-       pdie(1);
+       pdie(1, NULL);
     }
 
     return socket_fd;
@@ -167,10 +160,15 @@ int connectSocket(char hostname[], int port) {
 int substrafter(char *out, char haystack[], char needle, int nr) {
     int i, needleNr = 0;
 
-    for (i = 0; i < strlen(haystack)-1; ++i) {
+    for (i = 0; i < strlen(haystack); ++i) {
         if(haystack[i] == needle) {
             needleNr++;
         }
+        if (i == strlen(haystack)-1){
+            out = "";
+            return 1;
+        }
+
         if (needleNr == nr){
             strcpy(out, &haystack[i+1]);
             return 0;
@@ -187,18 +185,14 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
     FILE *p = NULL;
     
 
-   memset(fileRecv, 0, sizeof(fileRecv));
-
-    if (strncmp(recvBuff, "200", 3) == 0) {
-    // Mode successfully set 
-    }
+    memset(fileRecv, 0, sizeof(fileRecv));
 
     sprintf(sendBuff, "SIZE %s\r\n", ftpConf->filename);
     logWrite(control_socket, sendBuff);
     logRead(control_socket, recvBuff);
     
     if (strncmp(recvBuff,"550", 3) == 0) {
-        pdie(3);
+        pdie(3, NULL);
     }
     substrafter(recvBuff, recvBuff, ' ', 1);
 
@@ -217,10 +211,6 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         logWrite(control_socket, portStr);
         logRead(control_socket, recvBuff);
 
-        /* CONNECTION ERROR */
-        if (strncmp(recvBuff, "200", 3) < 0) {
-            pdie(1);
-        }
         sprintf(sendBuff, "REST %d\r\n", startPos);
         logWrite(control_socket, sendBuff);   
         sprintf(sendBuff, "RETR %s\r\n",ftpConf->filename);
@@ -235,11 +225,7 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         strcpy(sendBuff, "PASV\r\n");
         logWrite(control_socket, sendBuff);
         logRead(control_socket, recvBuff);
-        if (strncmp(recvBuff, "227", 3) < 0){
-            /* Cannot enter PASV mode */
-            pdie(1);
-        }
-
+    
         port = findPasvPort(recvBuff);
         filesocket = connectSocket(ftpConf->hostname, port);
         sprintf(sendBuff, "REST %d\r\n", startPos);
@@ -248,7 +234,6 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         logWrite(control_socket, sendBuff);
         logRead(control_socket, recvBuff);
     }
-    printf("startPos: \n%d\n\n", startPos);
 
     while (received < bytesToDownload) {
         n = read(filesocket, fileRecv, BUFFER_SIZE-1);;
@@ -260,7 +245,6 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         fclose(p); 
         pthread_mutex_unlock (&mutfile);
         received += n;
-    //   printf("%d\n", received);
     }
 
     logWrite(control_socket, "ABOR\r\n");
@@ -275,6 +259,10 @@ void setType(int control_socket, char sendBuff[]){
     } else if (strcmp(gArgs.mode, "ASCII") == 0) {
         strcpy(sendBuff, "TYPE A\r\n");
     }
+    else {
+        pdie(7, "Do not recognize type");
+    }
+
     logWrite(control_socket, sendBuff);
 }
  
@@ -302,7 +290,7 @@ void portString(char out[], int connectSocket) {
         }
         sprintf(out, "PORT %s,%d,%d\r\n", hostn, port/256, port%256);
     }else {
-        pdie(2);
+        pdie(2, NULL);
     }
 }
 
@@ -320,7 +308,7 @@ int openServerSocket() {
     server_address.sin_port = htons(0);
 
     if (bind(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address))){
-        pdie(1);
+        pdie(1, NULL);
     }
     return socket_fd;
 
@@ -333,12 +321,110 @@ int connectToMessageSocket(int connectSocket){
     listen(connectSocket, 5);
     clientLen = sizeof(client_address);
     if ((message_socket = accept(connectSocket, (struct sockaddr *) &client_address, &clientLen)) < 0){
-        pdie(1);
+        pdie(1, NULL);
     }
 
     return message_socket;
 
 }
 
+void checkForErrorResponse(char response[]) {
+    int responseCode;
+    responseCode = (((int)response[0])-48)*100 + (((int)response[1])-48)*10 + (((int)response[2])-48);
 
 
+    switch (responseCode) {
+        case 500:
+            pdie(4, NULL);
+            break;
+
+        case 501: 
+            pdie(4, NULL);
+            break;
+
+        // Command not implemented
+        case 202: 
+            pdie(5, NULL);
+            break;
+
+        case 502:
+            pdie(5, NULL);
+            break;
+
+        case 503:
+            pdie(4, response);
+            break;
+
+        case 504:
+            pdie(5, NULL);
+            break;
+
+        case 421:
+            pdie(1, response);
+            break;
+
+        case 425:
+            pdie(1, NULL);
+            break;
+
+        case 530:
+            pdie(2, NULL);
+            break;
+
+        case 332:
+            pdie(2, NULL);
+            break;
+
+        case 550:
+            pdie(3, NULL);
+            break;
+
+        case 451:
+            pdie(7, response);
+            break;
+
+        case 551:
+            pdie(3, NULL);
+            break;
+
+        case 553:
+            pdie(3, response);
+            break;
+
+        case 552:
+            pdie(3, response);
+            break;
+
+        case 450:
+            pdie(3, response);
+            break;
+    }
+
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+   
+    if (strncmp(response, "551", 3) == 0) {
+        pdie(3, NULL);
+    }
+
+    //File name not allowed
+    if (strncmp(response, "553", 3) == 0) {
+        pdie(3, response);
+    }
+    if (strncmp(response, "552", 3) == 0) {
+        pdie(3, response);
+    }
+   
+
+}

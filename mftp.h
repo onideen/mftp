@@ -62,7 +62,7 @@ pthread_mutex_t mutlog;
 
 void *ftpClient(void *ftpConf);
 int connectSocket(char hostname[], int port);
-void pdie(int exitCode);
+void pdie(int exitCode, char *errorMessage);
 void printGlobalArgs();
 void authentificate(struct ftpArgs_t *ftpConf, int socket, char recvBuff[], char sendBuff[]);
 int logRead(int socket, char recvBuff[]);
@@ -75,3 +75,5 @@ void portString(char out[], int connectSocket);
 int openServerSocket();
 int connectToMessageSocket(int connectSocket);
 void parseSwarmConf(char out[], char opt, char line[]);
+
+void checkForErrorResponse(char response[]);
