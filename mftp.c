@@ -182,7 +182,6 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
     int filesocket = 0, filesize = 0, bytesToDownload = 0, received = 0, startPos = 0, n, i;
     int connect_socket;
     unsigned char fileRecv[1024];
-    FILE *p = NULL;
     
 
     memset(fileRecv, 0, sizeof(fileRecv));
@@ -239,10 +238,8 @@ void retriveFile(struct ftpArgs_t *ftpConf, char sendBuff[], char recvBuff[], in
         n = read(filesocket, fileRecv, BUFFER_SIZE-1);;
         
         pthread_mutex_lock (&mutfile);
-        p = fopen(gArgs.filename, "a+");
-        fseek(p,startPos + received, SEEK_SET);
-        fwrite(fileRecv, 1, n, p);
-        fclose(p); 
+        fseek(gArgs.file,startPos + received, SEEK_SET);
+        fwrite(fileRecv, 1, n, gArgs.file);
         pthread_mutex_unlock (&mutfile);
         received += n;
     }
@@ -399,32 +396,4 @@ void checkForErrorResponse(char response[]) {
             pdie(3, response);
             break;
     }
-
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-   
-    if (strncmp(response, "551", 3) == 0) {
-        pdie(3, NULL);
-    }
-
-    //File name not allowed
-    if (strncmp(response, "553", 3) == 0) {
-        pdie(3, response);
-    }
-    if (strncmp(response, "552", 3) == 0) {
-        pdie(3, response);
-    }
-   
-
 }

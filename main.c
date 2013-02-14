@@ -4,7 +4,7 @@ void createFileForDownload(FILE *fpt, char *filename);
 int linesInFile(FILE *f);
 
 void printUsage(FILE *out) {
-	fprintf(out, "Proper usage is: ./mftp [OPTIONS] \n");
+	fprintf(out, "\nProper usage is: ./mftp [OPTIONS] \n");
 	fprintf(out, "Option list: \n");
 	fprintf(out, " -h, --help\t\t\tDisplays this helpfile\n");
 	fprintf(out, " -v, --version\t\t\tPrints the name of the application and author\n");
@@ -179,6 +179,11 @@ int main(int argc, char **argv) {
 		opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 	}
 
+	// missing arguments ????
+
+	if ((gArgs.filename == NULL || gArgs.hostname == NULL)&& gArgs.swarmfile == NULL) {
+		printUsage(stderr);
+	}
 
 	if (gArgs.swarmfile == NULL) {
 		hosts = malloc(sizeof(struct ftpArgs_t));
@@ -234,7 +239,8 @@ int main(int argc, char **argv) {
 		gArgs.filename = hosts[0].filename;
 	}
 
-	// missing arguments ????
+
+
 
 	while (substrafter(tmp, gArgs.filename, '/', 1) == 0) {
 		strcpy(gArgs.filename, tmp);
