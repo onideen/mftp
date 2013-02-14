@@ -47,8 +47,7 @@ When calling the program it is required to either specify **hostname** ABD **fil
 
 Error Handling
 --------------
-If the cli command is missing required arguments the mftp-client will exit with code 0 and print usage in stderr. 
-
-
-The mftp client checks for error responses each time it gets a response from the server. If an error response is found it exits with the appropriate exit code and write something useful to stderr.  
-If **one** thread fails, the whole program fails!
+*	If the cli command is missing required arguments the mftp-client will exit with code 0 and print usage in stderr.
+*	If there is something wrong with the swarming file the client dies a horrible death.
+*	The mftp client checks for error responses each time it gets a response from the server. If an error response is found it exits with the appropriate exit code and write something useful to stderr.  
+*	If **one** thread fails, the whole program fails!
