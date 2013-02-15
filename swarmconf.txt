@@ -1,0 +1,2 @@
+ftp://anonymous:google@location.dnsdynamic.com/polarbear.jpg
+ftp://anonymous:google@128.111.68.213/polarbear.jpg
