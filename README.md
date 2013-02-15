@@ -4,6 +4,10 @@ Multithreaded File Transfer Protocol
 The Mulitthreaded File Transfer Protocol (mftp) is a swarming ftp client written in c in the class CS176b at UCSB. It supports download a file specified in cli. The way the mftp client differs from a standard ftp client is that it supports swarming downloads, which means it can download a file simultaneously from multiple ftp-servers. 
 
 
+Compile
+-------
+To compile the project run make from folder root
+
 
 Usage
 -----
@@ -41,7 +45,7 @@ Sample swarm-config-file:
 	ftp://anonymous:securepassword@128.111.68.213/10.MB
 
 *--help* prints usage to stdout  
-When calling the program it is required to either specify **hostname** ABD **file** OR a **swarm-config-file**.
+When calling the program it is required to either specify **hostname** AND **file** OR a **swarm-config-file**.
 
 
 
@@ -51,3 +55,4 @@ Error Handling
 *	If there is something wrong with the swarming file the client dies a horrible death.
 *	The mftp client checks for error responses each time it gets a response from the server. If an error response is found it exits with the appropriate exit code and write something useful to stderr.  
 *	If **one** thread fails, the whole program fails!
+*	If *swarm-config-file* does not exists the program exits

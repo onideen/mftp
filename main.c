@@ -31,10 +31,10 @@ void pdie(int exitCode, char *errorMessage){
 
 	if (errorMessage != NULL) {
 		fprintf(stderr, errorMessage);
-		
-		if (gArgs.log != NULL) {
-			fprintf(gArgs.log, errorMessage);
-		}
+	}
+
+	if (gArgs.log != NULL){
+		fclose(gArgs.log);
 	}
 
 	switch (exitCode) {
@@ -75,20 +75,13 @@ void pdie(int exitCode, char *errorMessage){
 			strcpy(exitMessage, "ERROR");
 			break;
 	} 
-	if (gArgs.log != NULL){
-		fprintf(gArgs.log, exitMessage);
-		fclose(gArgs.log);
-	}
 
 	if (exitCode != 0) {
 		unlink(gArgs.filename);
 	}
 
-	
 	fprintf(stderr, "%s\n", exitMessage);
 	
-	
-
 	exit(exitCode);
 
 }
@@ -179,10 +172,13 @@ int main(int argc, char **argv) {
 		opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
 	}
 
-	// missing arguments ????
 
 	if ((gArgs.filename == NULL || gArgs.hostname == NULL)&& gArgs.swarmfile == NULL) {
 		printUsage(stderr);
+	}
+
+	if ((gArgs.swarmfile != NULL) && strcmp(gArgs.mode, "ASCII") == 0) {
+		pdie(7, "ASCII mode does not work with swarming\n");
 	}
 
 	if (gArgs.swarmfile == NULL) {
@@ -196,6 +192,10 @@ int main(int argc, char **argv) {
 	} else {
 		FILE *file = fopen(gArgs.swarmfile, "r");
 		int lines = 0, i;
+
+		if (file == NULL) {
+			pdie(3, NULL);
+		}
 
 		lines = linesInFile(file);
 		gArgs.nthreads = lines;
